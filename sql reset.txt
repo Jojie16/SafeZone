@@ -1,0 +1,10 @@
+-- Reset the database
+DELETE FROM messages;
+DELETE FROM incidents;
+DELETE FROM users;
+ALTER TABLE messages AUTO_INCREMENT = 1;
+ALTER TABLE incidents AUTO_INCREMENT = 1;
+ALTER TABLE users AUTO_INCREMENT = 1;
+
+
+API KEY: AIzaSyC7v5xpgfsPtN540CDq4gVWVPHetgBoGtU
