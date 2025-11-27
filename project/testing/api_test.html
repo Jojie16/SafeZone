@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Direct Test</title>
+</head>
+<body>
+    <h1>Direct API Tests</h1>
+    
+    <div>
+        <button onclick="test('test_connection')">Test Connection</button>
+        <button onclick="test('get_alerts')">Get Alerts</button>
+        <button onclick="testAlert()">Test Alert Trigger</button>
+    </div>
+    
+    <div id="result" style="margin-top: 20px; padding: 10px; background: #f0f0f0; white-space: pre-wrap;"></div>
+
+    <script>
+        function test(action) {
+            fetch(`api.php?action=${action}`)
+                .then(r => r.text())
+                .then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+                    } catch (e) {
+                        document.getElementById('result').textContent = 'Raw response: ' + text;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('result').textContent = 'Error: ' + error.message;
+                });
+        }
+
+        function testAlert() {
+            const postData = new URLSearchParams({
+                full_name: 'Test User',
+                phone_number: '+1234567890',
+                gps_lat: '37.7749',
+                gps_lng: '-122.4194'
+            });
+
+            fetch('api.php?action=alert_trigger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: postData
+            })
+            .then(r => r.text())
+            .then(text => {
+                try {
+                    const data = JSON.parse(text);
+                    document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+                } catch (e) {
+                    document.getElementById('result').textContent = 'Raw response: ' + text;
+                }
+            })
+            .catch(error => {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            });
+        }
+    </script>
+</body>
+</html>

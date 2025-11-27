@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeZone Dispatcher Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Add this in the head section of dashboard.html -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC7v5xpgfsPtN540CDq4gVWVPHetgBoGtU&callback=initMap" async defer></script>
+    <style>
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 400px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .debug-log {
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+            border-bottom: 1px solid #333;
+        }
+
+        .log-error {
+            color: #ff6b6b;
+        }
+
+        .log-success {
+            color: #51cf66;
+        }
+
+        .log-info {
+            color: #339af0;
+        }
+
+        .debug-controls {
+            background: #2c3e50;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .debug-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="dashboard">
+        <!-- Debug Panel -->
+        <div class="debug-panel">
+            <strong>DASHBOARD DEBUG</strong>
+            <div class="debug-controls">
+                <button class="debug-btn" onclick="testAPI()">Test API</button>
+                <button class="debug-btn" onclick="refreshAlerts()">Refresh Alerts</button>
+                <button class="debug-btn" onclick="clearDebug()">Clear Log</button>
+            </div>
+            <div>Selected Incident: <span id="debug-selected-incident">none</span></div>
+            <div>Alerts Count: <span id="debug-alerts-count">0</span></div>
+            <div class="debug-log" id="debug-log"></div>
+        </div>
+
+        <div class="dashboard-header">
+            <div class="container">
+                <h1>SafeZone Emergency Dispatch Center</h1>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="dashboard-content">
+                <!-- Left Column - Active Alerts -->
+                <div class="alerts-list">
+                    <div class="alerts-header">
+                        Active Emergency Alerts
+                        <button class="debug-btn" onclick="refreshAlerts()"
+                            style="float: right; font-size: 12px;">Refresh</button>
+                    </div>
+                    <div id="alert-items" class="alert-items">
+                        <!-- Alerts will be loaded here -->
+                        <div class="alert-item">
+                            <div>Loading alerts...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Incident Details -->
+                <div class="incident-detail">
+                    <div class="incident-header">
+                        Incident Details
+                    </div>
+
+                    <div id="no-incident-selected" class="incident-info">
+                        <p>Please select an incident from the list to view details and respond.</p>
+                    </div>
+
+                    <div id="incident-details" class="hidden">
+                        <!-- In the incident-details section, replace the map placeholder -->
+<!-- In the incident-details section -->
+<div class="incident-info">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="alert-user" id="detail-user-name">User Name</div>
+        <button id="solve-emergency-btn" class="btn btn-success" onclick="solveEmergency()" 
+                style="background-color: #27ae60; border: none; padding: 8px 16px; font-size: 14px;">
+            ✅ Emergency Solved
+        </button>
+    </div>
+    <div class="alert-time" id="detail-alert-time">Time</div>
+    
+    <!-- Enhanced Location Information -->
+    <div class="location-details" style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+        <div><strong>📍 GPS Coordinates:</strong> <span id="detail-gps-coords">0, 0</span></div>
+        <div><strong>🎯 Accuracy:</strong> <span id="detail-gps-accuracy">0</span> meters</div>
+        <div><strong>📡 Method:</strong> <span id="detail-location-method">GPS</span></div>
+        <div><strong>⏱️ Last Update:</strong> <span id="detail-location-time">Just now</span></div>
+    </div>
+    
+    <div class="location-actions" style="margin-top: 10px;">
+        <button onclick="copyCoordinates()" class="btn btn-primary" style="padding: 5px 10px; font-size: 12px; margin-right: 5px;">
+            📋 Copy Coordinates
+        </button>
+        <button onclick="openInMaps()" class="btn btn-primary" style="padding: 5px 10px; font-size: 12px;">
+            🗺️ Open in Maps
+        </button>
+        <button onclick="refreshLocation()" class="btn btn-warning" style="padding: 5px 10px; font-size: 12px; background: #f39c12; color: white;">
+            🔄 Refresh Location
+        </button>
+    </div>
+    
+    <!-- Real Map Container -->
+    <div class="map-container" style="margin: 15px 0;">
+        <div id="incident-map" style="height: 300px; width: 100%; border-radius: 8px; border: 2px solid #ddd;"></div>
+        <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #7f8c8d;">
+            📍 Live Emergency Location
+        </div>
+    </div>
+</div>
+
+                        <div class="dashboard-chat">
+                            <div id="dashboard-messages" class="dashboard-messages">
+                                <!-- Messages will be loaded here -->
+                            </div>
+
+                            <div class="dashboard-input">
+                                <input type="text" id="dispatcher-message-input" placeholder="Type response message...">
+                                <input type="file" id="dispatcher-media-upload" accept="image/*,video/*" class="hidden">
+                                <button type="button" class="upload-btn"
+                                    onclick="document.getElementById('dispatcher-media-upload').click()">
+                                    📎
+                                </button>
+                                <button type="button" class="btn btn-success"
+                                    onclick="sendDispatcherMessage()">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug functions
+        function debugLog(message, type = 'info') {
+            const log = document.getElementById('debug-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            console.log(`[DASHBOARD] ${message}`);
+        }
+
+        function clearDebug() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+
+        function updateDebugInfo() {
+            document.getElementById('debug-alerts-count').textContent = window.alertsCount || 0;
+            document.getElementById('debug-selected-incident').textContent = currentSelectedIncident || 'none';
+        }
+
+        // Global variables
+        let currentSelectedIncident = null;
+        let alertsRefreshInterval = null;
+        let chatRefreshInterval = null;
+        window.alertsCount = 0;
+
+        // DOM Elements
+        const alertItems = document.getElementById('alert-items');
+        const noIncidentSelected = document.getElementById('no-incident-selected');
+        const incidentDetails = document.getElementById('incident-details');
+        const dashboardMessages = document.getElementById('dashboard-messages');
+        const dispatcherMessageInput = document.getElementById('dispatcher-message-input');
+        const dispatcherMediaUpload = document.getElementById('dispatcher-media-upload');
+
+        // Event Listeners
+        dispatcherMediaUpload.addEventListener('change', handleDispatcherMediaUpload);
+        dispatcherMessageInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendDispatcherMessage();
+            }
+        });
+
+        // Test API connection
+        function testAPI() {
+            debugLog('Testing API connection...', 'info');
+            fetch('api.php?action=test_connection')
+                .then(response => {
+                    debugLog(`API Response status: ${response.status}`, 'info');
+                    return response.json();
+                })
+                .then(data => {
+                    debugLog(`API Test: ${JSON.stringify(data)}`, data.success ? 'success' : 'error');
+                })
+                .catch(error => {
+                    debugLog(`API Test Error: ${error.message}`, 'error');
+                });
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function () {
+            debugLog('Dashboard initialized', 'success');
+            refreshAlerts();
+            alertsRefreshInterval = setInterval(refreshAlerts, 5000);
+            testAPI();
+        });
+
+        // Refresh alerts list
+        function refreshAlerts() {
+            debugLog('Fetching alerts from API...', 'info');
+
+            fetch('api.php?action=get_alerts')
+                .then(response => {
+                    debugLog(`Alerts response status: ${response.status}`, 'info');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    debugLog(`Raw API response received`, 'info');
+                    console.log('Full API response:', data); // Debug to console
+
+                    if (data.success && data.data && data.data.alerts) {
+                        const alerts = data.data.alerts;
+                        window.alertsCount = alerts.length;
+                        debugLog(`API returned ${alerts.length} alerts`, 'success');
+                        console.log('Alerts data:', alerts); // Debug to console
+                        displayAlerts(alerts);
+
+                        if (currentSelectedIncident) {
+                            refreshDispatcherChat();
+                        }
+                    } else {
+                        debugLog(`API error or no alerts: ${data.error || 'No alerts data'}`, 'error');
+                        displayAlerts([]);
+                    }
+                    updateDebugInfo();
+                })
+                .catch(error => {
+                    debugLog(`Error fetching alerts: ${error.message}`, 'error');
+                    displayAlerts([]);
+                    updateDebugInfo();
+                });
+        }
+
+        // SIMPLIFIED Display alerts function - FIXED VERSION
+        function displayAlerts(alerts) {
+            console.log('displayAlerts called with:', alerts); // Debug
+
+            // Clear existing alerts
+            alertItems.innerHTML = '';
+
+            if (!alerts || alerts.length === 0) {
+                debugLog('No alerts to display', 'info');
+                const noAlerts = document.createElement('div');
+                noAlerts.className = 'alert-item';
+                noAlerts.innerHTML = `
+                <div style="text-align: center; color: #7f8c8d; padding: 20px;">
+                    <strong>No active alerts found</strong><br>
+                    <small>Create an alert from the mobile app first</small>
+                </div>
+            `;
+                alertItems.appendChild(noAlerts);
+                return;
+            }
+
+            debugLog(`Creating ${alerts.length} alert items in DOM`, 'info');
+
+            // Create each alert item
+            alerts.forEach(alert => {
+                console.log('Creating alert item for:', alert); // Debug
+
+                const alertItem = document.createElement('div');
+                alertItem.className = 'alert-item';
+                if (currentSelectedIncident === alert.id) {
+                    alertItem.classList.add('active');
+                }
+
+                // Simple, reliable HTML content
+                alertItem.innerHTML = `
+                <div class="alert-user">${escapeHtml(alert.user_name || 'Unknown User')}</div>
+                <div class="alert-time">${formatDateTime(alert.created_at)}</div>
+                <div class="alert-status">ACTIVE</div>
+            `;
+
+                // Add click event
+                alertItem.addEventListener('click', () => {
+                    console.log('Alert clicked:', alert.id); // Debug
+                    selectIncident(alert);
+                });
+
+                // Append to DOM
+                alertItems.appendChild(alertItem);
+                console.log('Alert item appended to DOM'); // Debug
+            });
+
+            debugLog(`Successfully created ${alerts.length} alert items`, 'success');
+
+            // Verify DOM creation
+            const createdAlerts = document.querySelectorAll('.alert-item');
+            console.log(`DOM now has ${createdAlerts.length} alert items`); // Debug
+            debugLog(`DOM verification: ${createdAlerts.length} alert items created`, 'success');
+        }
+
+        // Format date time for display
+        function formatDateTime(dateString) {
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString();
+            } catch (e) {
+                return 'Unknown time';
+            }
+        }
+
+        // Select incident for detailed view
+        function selectIncident(incident) {
+            debugLog(`Selecting incident: ${incident.id}`, 'success');
+            currentSelectedIncident = incident.id;
+
+            // Update UI
+            document.getElementById('detail-user-name').textContent = incident.user_name || 'Unknown User';
+            document.getElementById('detail-alert-time').textContent = formatDateTime(incident.created_at);
+            document.getElementById('detail-gps-coords').textContent = `${incident.gps_lat}, ${incident.gps_lng}`;
+            document.getElementById('map-gps-coords').textContent = `${incident.gps_lat}, ${incident.gps_lng}`;
+
+            // Show/hide panels
+            noIncidentSelected.classList.add('hidden');
+            incidentDetails.classList.remove('hidden');
+
+            // Update selection styling
+            updateAlertSelection();
+
+            // Refresh chat
+            refreshDispatcherChat();
+            if (chatRefreshInterval) {
+                clearInterval(chatRefreshInterval);
+            }
+            chatRefreshInterval = setInterval(refreshDispatcherChat, 3000);
+
+            updateDebugInfo();
+        }
+
+        // Update alert selection styling
+        function updateAlertSelection() {
+            const allAlertItems = document.querySelectorAll('.alert-item');
+            allAlertItems.forEach(item => {
+                item.classList.remove('active');
+            });
+
+            if (currentSelectedIncident) {
+                const selectedItem = document.querySelector(`.alert-item[data-incident-id="${currentSelectedIncident}"]`);
+                if (selectedItem) {
+                    selectedItem.classList.add('active');
+                }
+            }
+        }
+
+        // Refresh dispatcher chat
+        function refreshDispatcherChat() {
+            if (!currentSelectedIncident) return;
+
+            fetch(`api.php?action=get_chat&incident_id=${currentSelectedIncident}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayDispatcherMessages(data.data.messages || []);
+                    }
+                })
+                .catch(error => {
+                    console.error('Chat refresh error:', error);
+                });
+        }
+
+        // Display messages in dispatcher chat
+        function displayDispatcherMessages(messages) {
+            dashboardMessages.innerHTML = '';
+
+            if (messages.length === 0) {
+                const noMessages = document.createElement('div');
+                noMessages.style.textAlign = 'center';
+                noMessages.style.color = '#7f8c8d';
+                noMessages.style.padding = '20px';
+                noMessages.textContent = 'No messages yet. Start the conversation.';
+                dashboardMessages.appendChild(noMessages);
+                return;
+            }
+
+            messages.forEach(message => {
+                addDispatcherMessageToChat(message.message_text, message.sender, message.media_path, message.created_at);
+            });
+            dashboardMessages.scrollTop = dashboardMessages.scrollHeight;
+        }
+
+        // Add individual message to dispatcher chat
+        function addDispatcherMessageToChat(text, sender, mediaPath = null, timestamp = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+
+            if (text) {
+                const textDiv = document.createElement('div');
+                textDiv.textContent = text;
+                bubbleDiv.appendChild(textDiv);
+            }
+
+            if (mediaPath) {
+                const mediaDiv = document.createElement('div');
+                mediaDiv.className = 'media-attachment';
+
+                if (mediaPath.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    const img = document.createElement('img');
+                    img.src = mediaPath;
+                    img.alt = 'Uploaded image';
+                    mediaDiv.appendChild(img);
+                }
+
+                bubbleDiv.appendChild(mediaDiv);
+            }
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = timestamp ? formatDateTime(timestamp) : formatDateTime(new Date());
+
+            messageDiv.appendChild(bubbleDiv);
+            messageDiv.appendChild(timeDiv);
+            dashboardMessages.appendChild(messageDiv);
+        }
+
+        // Send dispatcher message
+        function sendDispatcherMessage() {
+            const message = dispatcherMessageInput.value.trim();
+            if (!message && !dispatcherMediaUpload.files[0]) return;
+
+            if (!currentSelectedIncident) {
+                alert('Please select an incident first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('incident_id', currentSelectedIncident);
+            formData.append('sender', 'dispatcher');
+            formData.append('message_text', message);
+
+            if (dispatcherMediaUpload.files[0]) {
+                formData.append('media', dispatcherMediaUpload.files[0]);
+            }
+
+            fetch('api.php?action=send_message', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        dispatcherMessageInput.value = '';
+                        dispatcherMediaUpload.value = '';
+                        refreshDispatcherChat();
+                    } else {
+                        alert('Error sending message: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error sending message');
+                });
+        }
+
+        // Handle dispatcher media upload
+        function handleDispatcherMediaUpload() {
+            if (this.files[0]) {
+                sendDispatcherMessage();
+            }
+        }
+
+        // Utility function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Solve emergency function
+        function solveEmergency() {
+            if (!currentSelectedIncident) {
+                alert('Please select an incident first');
+                return;
+            }
+
+            const solveBtn = document.getElementById('solve-emergency-btn');
+            const originalText = solveBtn.textContent;
+
+            // Show loading state
+            solveBtn.textContent = 'Solving...';
+            solveBtn.classList.add('solving');
+            solveBtn.disabled = true;
+
+            debugLog(`Solving emergency for incident: ${currentSelectedIncident}`, 'info');
+
+            // Send solve request to API
+            fetch('api.php?action=solve_emergency', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `incident_id=${currentSelectedIncident}`
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        debugLog(`Emergency solved successfully for incident: ${currentSelectedIncident}`, 'success');
+
+                        // Add solved message to chat
+                        addDispatcherMessageToChat('🚨 EMERGENCY RESOLVED: This incident has been marked as solved.', 'dispatcher');
+
+                        // Update UI
+                        solveBtn.textContent = '✅ Solved';
+                        solveBtn.style.backgroundColor = '#95a5a6';
+                        solveBtn.disabled = true;
+
+                        // Remove from active alerts list after a delay
+                        setTimeout(() => {
+                            refreshAlerts();
+                            // Reset incident details view
+                            noIncidentSelected.classList.remove('hidden');
+                            incidentDetails.classList.add('hidden');
+                            currentSelectedIncident = null;
+                            updateDebugInfo();
+                        }, 2000);
+
+                    } else {
+                        debugLog(`Failed to solve emergency: ${data.error}`, 'error');
+                        alert('Error solving emergency: ' + data.error);
+
+                        // Reset button
+                        solveBtn.textContent = originalText;
+                        solveBtn.classList.remove('solving');
+                        solveBtn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    debugLog(`Error solving emergency: ${error.message}`, 'error');
+                    alert('Error solving emergency: ' + error.message);
+
+                    // Reset button
+                    solveBtn.textContent = originalText;
+                    solveBtn.classList.remove('solving');
+                    solveBtn.disabled = false;
+                });
+        }
+
+        // Update the selectIncident function to handle solved incidents
+        function selectIncident(incident) {
+            debugLog(`Selecting incident: ${incident.id} - ${incident.user_name}`, 'success');
+            currentSelectedIncident = incident.id;
+
+            // Update incident details in the UI
+            document.getElementById('detail-user-name').textContent = incident.user_name;
+            document.getElementById('detail-alert-time').textContent = formatDateTime(incident.created_at);
+            document.getElementById('detail-gps-coords').textContent = `${incident.gps_lat}, ${incident.gps_lng}`;
+            document.getElementById('map-gps-coords').textContent = `${incident.gps_lat}, ${incident.gps_lng}`;
+
+            // Update solve button based on incident status
+            const solveBtn = document.getElementById('solve-emergency-btn');
+            if (incident.status === 'closed' || incident.status === 'solved') {
+                solveBtn.textContent = '✅ Solved';
+                solveBtn.style.backgroundColor = '#95a5a6';
+                solveBtn.disabled = true;
+            } else {
+                solveBtn.textContent = '✅ Emergency Solved';
+                solveBtn.style.backgroundColor = '#27ae60';
+                solveBtn.disabled = false;
+                solveBtn.classList.remove('solving');
+            }
+
+            // Show incident details and hide "no selection" message
+            noIncidentSelected.classList.add('hidden');
+            incidentDetails.classList.remove('hidden');
+
+            // Update active state in alerts list
+            updateAlertSelection();
+
+            // Start chat refresh for this incident
+            refreshDispatcherChat();
+            if (chatRefreshInterval) {
+                clearInterval(chatRefreshInterval);
+            }
+            chatRefreshInterval = setInterval(refreshDispatcherChat, 3000);
+
+            updateDebugInfo();
+        }
+
+        // Google Maps variables
+let map = null;
+let marker = null;
+let geocoder = null;
+
+// Initialize map
+function initMap() {
+    console.log('Initializing Google Maps...');
+    
+    // Default center (San Francisco)
+    const defaultCenter = { lat: 37.7749, lng: -122.4194 };
+    
+    // Create map
+    map = new google.maps.Map(document.getElementById('incident-map'), {
+        zoom: 15,
+        center: defaultCenter,
+        mapTypeId: 'roadmap',
+        styles: [
+            {
+                "featureType": "all",
+                "elementType": "geometry.fill",
+                "stylers": [{"weight": "2.00"}]
+            },
+            {
+                "featureType": "all",
+                "elementType": "geometry.stroke",
+                "stylers": [{"color": "#9c9c9c"}]
+            },
+            {
+                "featureType": "all",
+                "elementType": "labels.text",
+                "stylers": [{"visibility": "on"}]
+            },
+            {
+                "featureType": "landscape",
+                "elementType": "all",
+                "stylers": [{"color": "#f2f2f2"}]
+            },
+            {
+                "featureType": "landscape",
+                "elementType": "geometry.fill",
+                "stylers": [{"color": "#ffffff"}]
+            },
+            {
+                "featureType": "landscape.man_made",
+                "elementType": "geometry.fill",
+                "stylers": [{"color": "#ffffff"}]
+            },
+            {
+                "featureType": "poi",
+                "elementType": "all",
+                "stylers": [{"visibility": "off"}]
+            },
+            {
+                "featureType": "road",
+                "elementType": "all",
+                "stylers": [{"saturation": -100}, {"lightness": 45}]
+            },
+            {
+                "featureType": "road",
+                "elementType": "geometry.fill",
+                "stylers": [{"color": "#eeeeee"}]
+            },
+            {
+                "featureType": "road",
+                "elementType": "labels.text.fill",
+                "stylers": [{"color": "#7b7b7b"}]
+            },
+            {
+                "featureType": "road",
+                "elementType": "labels.text.stroke",
+                "stylers": [{"color": "#ffffff"}]
+            },
+            {
+                "featureType": "road.highway",
+                "elementType": "all",
+                "stylers": [{"visibility": "simplified"}]
+            },
+            {
+                "featureType": "road.arterial",
+                "elementType": "labels.icon",
+                "stylers": [{"visibility": "off"}]
+            },
+            {
+                "featureType": "transit",
+                "elementType": "all",
+                "stylers": [{"visibility": "off"}]
+            },
+            {
+                "featureType": "water",
+                "elementType": "all",
+                "stylers": [{"color": "#46bcec"}, {"visibility": "on"}]
+            }
+        ]
+    });
+    
+    geocoder = new google.maps.Geocoder();
+    
+    // Create a default marker (will be updated when incident is selected)
+    marker = new google.maps.Marker({
+        map: map,
+        position: defaultCenter,
+        icon: {
+            url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJDNy41ODYgMiA0IDUuNTg2IDQgMTBDNCAxNC40MTQgNy41ODYgMTggMTIgMThDMTYuNDE0IDE4IDIwIDE0LjQxNCAyMCAxMEMyMCA1LjU4NiAxNi40MTQgMiAxMiAyWk0xMiAxNkM4LjY4NiAxNiA2IDEzLjMxNCA2IDEwQzYgNi42ODYgOC42ODYgNCAxMiA0QzE1LjMxNCA0IDE4IDYuNjg2IDE4IDEwQzE4IDEzLjMxNCAxNS4zMTQgMTYgMTIgMTZaIiBmaWxsPSIjZmY0MTQxIi8+CjxjaXJjbGUgY3g9IjEyIiBjeT0iMTAiIHI9IjMiIGZpbGw9IiNmZjQxNDEiLz4KPC9zdmc+',
+            scaledSize: new google.maps.Size(40, 40),
+            anchor: new google.maps.Point(20, 40)
+        },
+        title: 'Emergency Location',
+        animation: google.maps.Animation.DROP
+    });
+    
+    console.log('Google Maps initialized successfully');
+}
+
+// Update map with incident location
+function updateMapLocation(lat, lng) {
+    if (!map || !marker) {
+        console.error('Map not initialized');
+        return;
+    }
+    
+    const location = new google.maps.LatLng(lat, lng);
+    
+    // Update marker position
+    marker.setPosition(location);
+    
+    // Center map on location
+    map.setCenter(location);
+    
+    // Add info window
+    const infoWindow = new google.maps.InfoWindow({
+        content: `
+            <div style="padding: 10px;">
+                <h3 style="margin: 0 0 5px 0; color: #e74c3c;">🚨 Emergency Location</h3>
+                <p style="margin: 0; font-size: 12px;">
+                    <strong>Coordinates:</strong><br>
+                    ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                </p>
+            </div>
+        `
+    });
+    
+    marker.addListener('click', () => {
+        infoWindow.open(map, marker);
+    });
+    
+    // Auto-open info window
+    infoWindow.open(map, marker);
+    
+    // Get address from coordinates (reverse geocoding)
+    geocoder.geocode({ location: location }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+            const address = results[0].formatted_address;
+            infoWindow.setContent(`
+                <div style="padding: 10px;">
+                    <h3 style="margin: 0 0 5px 0; color: #e74c3c;">🚨 Emergency Location</h3>
+                    <p style="margin: 0 0 5px 0; font-size: 12px;">
+                        <strong>Address:</strong><br>
+                        ${address}
+                    </p>
+                    <p style="margin: 0; font-size: 11px; color: #666;">
+                        <strong>Coordinates:</strong><br>
+                        ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                    </p>
+                </div>
+            `);
+        }
+    });
+    
+    console.log(`Map updated to location: ${lat}, ${lng}`);
+}
+
+// Update the selectIncident function to include map update
+function selectIncident(incident) {
+    debugLog(`Selecting incident: ${incident.id} - ${incident.user_name}`, 'success');
+    currentSelectedIncident = incident.id;
+    
+    // Update incident details in the UI
+    document.getElementById('detail-user-name').textContent = incident.user_name;
+    document.getElementById('detail-alert-time').textContent = formatDateTime(incident.created_at);
+    document.getElementById('detail-gps-coords').textContent = `${incident.gps_lat}, ${incident.gps_lng}`;
+    
+    // Update map with actual coordinates
+    updateMapLocation(parseFloat(incident.gps_lat), parseFloat(incident.gps_lng));
+    
+    // Update solve button
+    const solveBtn = document.getElementById('solve-emergency-btn');
+    if (incident.status === 'closed' || incident.status === 'solved') {
+        solveBtn.textContent = '✅ Solved';
+        solveBtn.style.backgroundColor = '#95a5a6';
+        solveBtn.disabled = true;
+    } else {
+        solveBtn.textContent = '✅ Emergency Solved';
+        solveBtn.style.backgroundColor = '#27ae60';
+        solveBtn.disabled = false;
+    }
+    
+    // Show incident details
+    noIncidentSelected.classList.add('hidden');
+    incidentDetails.classList.remove('hidden');
+    
+    // Refresh chat
+    refreshDispatcherChat();
+    if (chatRefreshInterval) {
+        clearInterval(chatRefreshInterval);
+    }
+    chatRefreshInterval = setInterval(refreshDispatcherChat, 3000);
+    
+    updateDebugInfo();
+}
+
+// Enhanced copy coordinates function
+function copyCoordinates() {
+    const coords = document.getElementById('detail-gps-coords').textContent;
+    navigator.clipboard.writeText(coords).then(() => {
+        debugLog('Coordinates copied to clipboard', 'success');
+        // Show temporary notification
+        showNotification('Coordinates copied to clipboard!');
+    }).catch(err => {
+        debugLog('Failed to copy coordinates', 'error');
+        showNotification('Failed to copy coordinates', 'error');
+    });
+}
+
+// Enhanced open in maps function
+function openInMaps() {
+    const coords = document.getElementById('detail-gps-coords').textContent;
+    const [lat, lng] = coords.split(',').map(coord => parseFloat(coord.trim()));
+    
+    // Multiple map options
+    const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+    const appleMapsUrl = `https://maps.apple.com/?q=${lat},${lng}`;
+    const openStreetMapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`;
+    
+    // Try to detect platform and open appropriate map
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        window.open(appleMapsUrl, '_blank');
+    } else {
+        window.open(googleMapsUrl, '_blank');
+    }
+    
+    debugLog(`Opened coordinates in maps: ${lat}, ${lng}`, 'success');
+    showNotification('Opening in maps...');
+}
+
+// Notification function
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${type === 'error' ? '#e74c3c' : '#27ae60'};
+        color: white;
+        border-radius: 5px;
+        z-index: 10000;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
+}
+
+// Fallback if Google Maps fails to load
+window.gm_authFailure = function() {
+    console.error('Google Maps authentication failed');
+    showNotification('Google Maps failed to load. Please check API key.', 'error');
+    
+    // Show fallback map placeholder
+    const mapContainer = document.getElementById('incident-map');
+    if (mapContainer) {
+        mapContainer.innerHTML = `
+            <div style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #bdc3c7; color: #7f8c8d;">
+                <div style="font-size: 48px; margin-bottom: 10px;">🗺️</div>
+                <div style="text-align: center;">
+                    <strong>Map Unavailable</strong><br>
+                    <small>Coordinates: <span id="fallback-coords">0, 0</span></small>
+                </div>
+            </div>
+        `;
+    }
+};
+
+    </script>
+</body>
+
+</html>

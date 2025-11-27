@@ -1,0 +1,527 @@
+/* SafeZone Emergency Alert System Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Common Styles */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Mobile App Styles */
+#mobile-app {
+    max-width: 400px;
+    margin: 0 auto;
+    background: white;
+    min-height: 100vh;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.login-screen {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.login-screen h1 {
+    color: #e74c3c;
+    margin-bottom: 30px;
+    font-size: 24px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: white;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-success {
+    background-color: #27ae60;
+    color: white;
+}
+
+/* Panic Button Styles */
+.panic-screen {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.panic-button {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 40px auto;
+    box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+    transition: all 0.3s;
+    animation: pulse 2s infinite;
+}
+
+.panic-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(231, 76, 60, 0.7);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 20px rgba(231, 76, 60, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+    }
+}
+
+/* Chat Styles */
+.chat-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.chat-header {
+    background-color: #e74c3c;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+}
+
+.message {
+    margin-bottom: 15px;
+    max-width: 80%;
+}
+
+.message.user {
+    margin-left: auto;
+}
+
+.message.dispatcher {
+    margin-right: auto;
+}
+
+.message-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    word-wrap: break-word;
+}
+
+.message.user .message-bubble {
+    background-color: #3498db;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message.dispatcher .message-bubble {
+    background-color: white;
+    color: #333;
+    border: 1px solid #ddd;
+    border-bottom-left-radius: 4px;
+}
+
+.message-time {
+    font-size: 12px;
+    color: #999;
+    margin-top: 5px;
+}
+
+.media-attachment {
+    max-width: 200px;
+    margin-top: 5px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.media-attachment img,
+.media-attachment video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chat-input {
+    padding: 15px;
+    background-color: white;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.chat-input input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+}
+
+.upload-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #3498db;
+    padding: 5px;
+}
+
+/* Dashboard Styles */
+#dashboard {
+    background-color: #ecf0f1;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    background-color: #2c3e50;
+    color: white;
+    padding: 15px 0;
+    margin-bottom: 20px;
+}
+
+.dashboard-header h1 {
+    text-align: center;
+    font-size: 24px;
+}
+
+.dashboard-content {
+    display: flex;
+    gap: 20px;
+    height: calc(100vh - 120px);
+}
+
+/* Alerts List */
+.alerts-list {
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.alerts-header {
+    background-color: #34495e;
+    color: white;
+    padding: 15px;
+    font-weight: bold;
+}
+
+.alert-items {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.alert-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.alert-item:hover {
+    background-color: #f8f9fa;
+}
+
+.alert-item.active {
+    background-color: #e3f2fd;
+    border-left: 4px solid #3498db;
+}
+
+.alert-user {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.alert-time {
+    color: #7f8c8d;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.alert-status {
+    display: inline-block;
+    padding: 2px 8px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* Incident Detail */
+.incident-detail {
+    flex: 2;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.incident-header {
+    background-color: #34495e;
+    color: white;
+    padding: 15px;
+}
+
+.incident-info {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.gps-coordinates {
+    font-family: monospace;
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+.map-placeholder {
+    height: 150px;
+    background-color: #bdc3c7;
+    margin: 15px 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+/* Map Container Styles */
+.map-container {
+    margin: 15px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+#incident-map {
+    height: 300px;
+    width: 100%;
+}
+
+/* Location actions */
+.location-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.location-actions button {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+/* Responsive map */
+@media (max-width: 768px) {
+    #incident-map {
+        height: 250px;
+    }
+    
+    .location-actions {
+        flex-direction: column;
+    }
+}
+
+.dashboard-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    background-color: #f8f9fa;
+}
+
+.dashboard-input {
+    padding: 15px;
+    background-color: white;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.dashboard-input input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .dashboard-content {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .alerts-list,
+    .incident-detail {
+        flex: none;
+    }
+}
+
+/* Ensure alert items are visible */
+.alert-item {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    background: white;
+}
+
+.alert-item:hover {
+    background-color: #f8f9fa;
+}
+
+.alert-item.active {
+    background-color: #e3f2fd;
+    border-left: 4px solid #3498db;
+}
+
+.alert-user {
+    font-weight: bold;
+    color: #2c3e50;
+    font-size: 16px;
+}
+
+.alert-time {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+.alert-status {
+    display: inline-block;
+    padding: 4px 12px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.alert-items {
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+/* Emergency Solved Button Styles */
+#solve-emergency-btn {
+    background-color: #27ae60 !important;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#solve-emergency-btn:hover {
+    background-color: #219653 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+#solve-emergency-btn:active {
+    transform: translateY(0);
+}
+
+#solve-emergency-btn.solving {
+    background-color: #95a5a6 !important;
+    cursor: not-allowed;
+}
+
+/* Status indicators */
+.status-solved {
+    background-color: #27ae60 !important;
+}
+
+.status-active {
+    background-color: #e74c3c !important;
+}
