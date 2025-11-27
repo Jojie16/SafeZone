@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeZone Mobile App - DEBUG</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .debug-panel {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+        }
+        .debug-log {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px;
+            border-bottom: 1px solid #333;
+        }
+        .log-error { color: #ff6b6b; }
+        .log-success { color: #51cf66; }
+        .log-info { color: #339af0; }
+    </style>
+</head>
+<body>
+    <!-- Debug Panel -->
+    <div class="debug-panel">
+        <strong>DEBUG MODE</strong>
+        <div>Incident ID: <span id="debug-incident">null</span></div>
+        <button onclick="clearDebug()">Clear Log</button>
+        <div class="debug-log" id="debug-log"></div>
+    </div>
+
+    <div id="mobile-app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="login-screen">
+            <h1>SafeZone Emergency App</h1>
+            <p>Please enter your details to continue</p>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="full-name">Full Name</label>
+                    <input type="text" id="full-name" name="full_name" required placeholder="Enter your full name" value="Test User">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone-number">Phone Number</label>
+                    <input type="tel" id="phone-number" name="phone_number" required placeholder="Enter your phone number" value="+1234567890">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Continue to Safety App</button>
+            </form>
+        </div>
+
+        <!-- Panic Button Screen -->
+        <div id="panic-screen" class="panic-screen hidden">
+            <h2>Emergency Assistance</h2>
+            <p>In case of emergency, press the button below to alert security personnel.</p>
+            
+            <button id="panic-button" class="panic-button">
+                EMERGENCY<br>ALERT
+            </button>
+            
+            <p style="color: #7f8c8d; font-size: 14px;">
+                Your location will be shared with security dispatchers
+            </p>
+
+            <!-- Test Buttons -->
+            <!-- <div style="margin-top: 20px; text-align: center;">
+                <button onclick="testAPI()" class="btn btn-primary" style="margin: 5px;">Test API Connection</button>
+                <button onclick="testGetAlerts()" class="btn btn-primary" style="margin: 5px;">Test Get Alerts</button>
+            </div> -->
+        </div>
+
+        <!-- Chat Screen -->
+        <div id="chat-screen" class="chat-screen hidden">
+            <div class="chat-header">
+                Emergency Response - Incident #<span id="incident-id">0</span>
+            </div>
+            
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will be loaded here -->
+            </div>
+            
+            <div class="chat-input">
+                <input type="text" id="message-input" placeholder="Type your message...">
+                <input type="file" id="media-upload" accept="image/*,video/*" class="hidden">
+                <button type="button" class="upload-btn" onclick="document.getElementById('media-upload').click()">
+                    📎
+                </button>
+                <button type="button" class="btn btn-success" onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Debug functions
+        function debugLog(message, type = 'info') {
+            const log = document.getElementById('debug-log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        function clearDebug() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+
+        function updateDebugIncident() {
+            document.getElementById('debug-incident').textContent = currentIncidentId || 'null';
+        }
+
+        // Global variables
+        let currentUser = null;
+        let currentIncidentId = null;
+        let chatRefreshInterval = null;
+
+        // DOM Elements
+        const loginScreen = document.getElementById('login-screen');
+        const panicScreen = document.getElementById('panic-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const loginForm = document.getElementById('login-form');
+        const panicButton = document.getElementById('panic-button');
+        const chatMessages = document.getElementById('chat-messages');
+        const messageInput = document.getElementById('message-input');
+        const mediaUpload = document.getElementById('media-upload');
+        const incidentIdSpan = document.getElementById('incident-id');
+
+        // Event Listeners
+        loginForm.addEventListener('submit', handleLogin);
+        panicButton.addEventListener('click', triggerEmergencyAlert);
+        mediaUpload.addEventListener('change', handleMediaUpload);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Test functions
+        function testAPI() {
+            debugLog('Testing API connection...', 'info');
+            fetch('api.php?action=test_connection')
+                .then(response => {
+                    debugLog(`Response status: ${response.status}`, 'info');
+                    return response.json();
+                })
+                .then(data => {
+                    debugLog(`API Test: ${JSON.stringify(data)}`, data.success ? 'success' : 'error');
+                })
+                .catch(error => {
+                    debugLog(`API Test Error: ${error.message}`, 'error');
+                });
+        }
+
+        function testGetAlerts() {
+            debugLog('Testing get_alerts...', 'info');
+            fetch('api.php?action=get_alerts')
+                .then(response => response.json())
+                .then(data => {
+                    debugLog(`Get Alerts: ${JSON.stringify(data)}`, data.success ? 'success' : 'error');
+                })
+                .catch(error => {
+                    debugLog(`Get Alerts Error: ${error.message}`, 'error');
+                });
+        }
+
+        // Handle user login
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            currentUser = {
+                full_name: formData.get('full_name'),
+                phone_number: formData.get('phone_number')
+            };
+            
+            debugLog(`User logged in: ${currentUser.full_name}`, 'success');
+            
+            // Show panic screen
+            loginScreen.classList.add('hidden');
+            panicScreen.classList.remove('hidden');
+        }
+
+        // Trigger emergency alert
+        function triggerEmergencyAlert() {
+            debugLog('Starting emergency alert...', 'info');
+            
+            // Generate simulated GPS coordinates
+            const gpsLat = 37.7749 + (Math.random() - 0.5) * 0.01;
+            const gpsLng = -122.4194 + (Math.random() - 0.5) * 0.01;
+            
+            debugLog(`GPS Coordinates: ${gpsLat}, ${gpsLng}`, 'info');
+            
+            const postData = `full_name=${encodeURIComponent(currentUser.full_name)}&phone_number=${encodeURIComponent(currentUser.phone_number)}&gps_lat=${gpsLat}&gps_lng=${gpsLng}`;
+            debugLog(`Sending data: ${postData}`, 'info');
+            
+            // Send alert to server
+            fetch('api.php?action=alert_trigger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: postData
+            })
+            .then(response => {
+                debugLog(`Response received. Status: ${response.status}`, 'info');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                debugLog(`Server response: ${JSON.stringify(data)}`, 'info');
+                
+                if (data.success) {
+                    currentIncidentId = data.data.incident_id;
+                    debugLog(`Incident created successfully! ID: ${currentIncidentId}`, 'success');
+                    updateDebugIncident();
+                    
+                    incidentIdSpan.textContent = currentIncidentId;
+                    
+                    // Switch to chat screen
+                    panicScreen.classList.add('hidden');
+                    chatScreen.classList.remove('hidden');
+                    
+                    // Start chat refresh
+                    startChatRefresh();
+                    
+                    // Add initial emergency message
+                    addMessageToChat('Emergency alert triggered. Security has been notified and is responding.', 'dispatcher');
+                } else {
+                    debugLog(`Alert failed: ${data.error}`, 'error');
+                    alert('Error triggering alert: ' + data.error);
+                }
+            })
+            .catch(error => {
+                debugLog(`Fetch error: ${error.message}`, 'error');
+                debugLog(`Full error: ${error}`, 'error');
+                alert('Error triggering emergency alert: ' + error.message);
+            });
+        }
+
+        // Send message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message && !mediaUpload.files[0]) {
+                debugLog('No message or media to send', 'error');
+                return;
+            }
+
+            debugLog(`Attempting to send message for incident: ${currentIncidentId}`, 'info');
+
+            if (!currentIncidentId) {
+                debugLog('No incident ID available!', 'error');
+                alert('Error: No active incident. Please trigger an emergency alert first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('incident_id', currentIncidentId);
+            formData.append('sender', 'user');
+            formData.append('message_text', message);
+            
+            if (mediaUpload.files[0]) {
+                formData.append('media', mediaUpload.files[0]);
+                debugLog(`Media file: ${mediaUpload.files[0].name}`, 'info');
+            }
+
+            debugLog(`Sending message: "${message}"`, 'info');
+
+            fetch('api.php?action=send_message', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                debugLog(`Send message response status: ${response.status}`, 'info');
+                return response.json();
+            })
+            .then(data => {
+                debugLog(`Send message result: ${JSON.stringify(data)}`, data.success ? 'success' : 'error');
+                if (data.success) {
+                    messageInput.value = '';
+                    mediaUpload.value = '';
+                    refreshChat();
+                } else {
+                    alert('Error sending message: ' + data.error);
+                }
+            })
+            .catch(error => {
+                debugLog(`Send message error: ${error.message}`, 'error');
+                alert('Error sending message: ' + error.message);
+            });
+        }
+
+        // Handle media upload
+        function handleMediaUpload() {
+            if (this.files[0]) {
+                debugLog('Media file selected, auto-sending...', 'info');
+                sendMessage();
+            }
+        }
+
+        // Start chat refresh interval
+        function startChatRefresh() {
+            debugLog('Starting chat refresh interval', 'info');
+            refreshChat(); // Initial load
+            chatRefreshInterval = setInterval(refreshChat, 3000);
+        }
+
+        // Refresh chat messages
+        function refreshChat() {
+            if (!currentIncidentId) {
+                debugLog('No incident ID for chat refresh', 'error');
+                return;
+            }
+
+            debugLog(`Refreshing chat for incident: ${currentIncidentId}`, 'info');
+
+            fetch(`api.php?action=get_chat&incident_id=${currentIncidentId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        debugLog(`Loaded ${data.data.messages.length} messages`, 'success');
+                        displayMessages(data.data.messages);
+                    } else {
+                        debugLog(`Chat refresh failed: ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    debugLog(`Chat refresh error: ${error.message}`, 'error');
+                });
+        }
+
+        // Display messages in chat
+        function displayMessages(messages) {
+            chatMessages.innerHTML = '';
+            messages.forEach(message => {
+                addMessageToChat(message.message_text, message.sender, message.media_path, message.created_at);
+            });
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add individual message to chat
+        function addMessageToChat(text, sender, mediaPath = null, timestamp = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            
+            if (text) {
+                const textDiv = document.createElement('div');
+                textDiv.textContent = text;
+                bubbleDiv.appendChild(textDiv);
+            }
+            
+            if (mediaPath) {
+                const mediaDiv = document.createElement('div');
+                mediaDiv.className = 'media-attachment';
+                
+                if (mediaPath.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                    const img = document.createElement('img');
+                    img.src = mediaPath;
+                    img.alt = 'Uploaded image';
+                    mediaDiv.appendChild(img);
+                } else if (mediaPath.match(/\.(mp4|mov|avi)$/i)) {
+                    const video = document.createElement('video');
+                    video.src = mediaPath;
+                    video.controls = true;
+                    video.style.maxWidth = '200px';
+                    mediaDiv.appendChild(video);
+                }
+                
+                bubbleDiv.appendChild(mediaDiv);
+            }
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+            
+            messageDiv.appendChild(bubbleDiv);
+            messageDiv.appendChild(timeDiv);
+            chatMessages.appendChild(messageDiv);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Initialize
+        debugLog('Page loaded successfully', 'success');
+        testAPI(); // Auto-test API on load
+
+
+// Enhanced GPS function for Philippines location
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        debugLog('Requesting real GPS location for Philippines...', 'info');
+        
+        if (!navigator.geolocation) {
+            reject(new Error('Geolocation is not supported by this browser'));
+            return;
+        }
+        
+        // More aggressive options for real GPS
+        const options = {
+            enableHighAccuracy: true,     // Force GPS instead of IP-based location
+            timeout: 30000,               // 30 second timeout for slow GPS
+            maximumAge: 0                 // Don't use any cached position
+        };
+        
+        // Show GPS status to user
+        panicButton.textContent = 'GETTING YOUR LOCATION...';
+        panicButton.style.backgroundColor = '#f39c12'; // Orange to indicate waiting
+        
+        let positionReceived = false;
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                positionReceived = true;
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                const accuracy = position.coords.accuracy;
+                
+                debugLog(`GPS Coordinates: ${lat}, ${lng}`, 'success');
+                debugLog(`GPS Accuracy: ${accuracy} meters`, 'info');
+                
+                // Check if coordinates are in Philippines
+                const isInPhilippines = isLocationInPhilippines(lat, lng);
+                
+                if (!isInPhilippines) {
+                    debugLog('WARNING: Coordinates not in Philippines. GPS might be using simulated location.', 'warning');
+                    
+                    // Show warning to user
+                    if (confirm('GPS shows location outside Philippines. This might be incorrect. Continue with this location?')) {
+                        resolve({
+                            lat: lat,
+                            lng: lng,
+                            accuracy: accuracy,
+                            isSimulated: true
+                        });
+                    } else {
+                        reject(new Error('User rejected incorrect location'));
+                    }
+                } else {
+                    resolve({
+                        lat: lat,
+                        lng: lng,
+                        accuracy: accuracy,
+                        isSimulated: false
+                    });
+                }
+            },
+            (error) => {
+                positionReceived = true;
+                let errorMessage = 'GPS Error: ';
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage += 'Location permission denied. ';
+                        errorMessage += 'Please allow location access in your browser settings and try again.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage += 'Location unavailable. ';
+                        errorMessage += 'Please check your GPS is enabled and try outdoors with clear sky view.';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage += 'Location request timeout. ';
+                        errorMessage += 'Please try again in an area with better GPS signal.';
+                        break;
+                    default:
+                        errorMessage += 'Unknown GPS error. Please try again.';
+                        break;
+                }
+                
+                debugLog(`GPS Error: ${errorMessage}`, 'error');
+                reject(new Error(errorMessage));
+            },
+            options
+        );
+        
+        // Fallback: If no response in 10 seconds, try alternative method
+        setTimeout(() => {
+            if (!positionReceived) {
+                debugLog('GPS timeout, trying alternative methods...', 'warning');
+                tryAlternativeLocationMethods().then(resolve).catch(reject);
+            }
+        }, 10000);
+    });
+}
+
+// Check if coordinates are within Philippines bounds
+function isLocationInPhilippines(lat, lng) {
+    // Philippines approximate boundaries
+    const phBounds = {
+        north: 21.5,   // Batanes
+        south: 4.0,    // Tawi-Tawi
+        west: 116.0,   // Kalayaan Islands
+        east: 127.0    // Eastern Samar
+    };
+    
+    return lat >= phBounds.south && 
+           lat <= phBounds.north && 
+           lng >= phBounds.west && 
+           lng <= phBounds.east;
+}
+
+// Alternative location methods
+function tryAlternativeLocationMethods() {
+    return new Promise((resolve, reject) => {
+        debugLog('Trying alternative location methods...', 'info');
+        
+        // Method 1: Try with less accuracy but faster
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                debugLog(`Alternative method got coordinates: ${lat}, ${lng}`, 'success');
+                resolve({
+                    lat: lat,
+                    lng: lng,
+                    accuracy: position.coords.accuracy,
+                    method: 'alternative'
+                });
+            },
+            (error) => {
+                // Method 2: Use IP-based location as last resort
+                getIPBasedLocation().then(resolve).catch(reject);
+            },
+            {
+                enableHighAccuracy: false,
+                timeout: 10000,
+                maximumAge: 60000 // Accept 1-minute old position
+            }
+        );
+    });
+}
+
+// IP-based location fallback
+function getIPBasedLocation() {
+    return new Promise((resolve, reject) => {
+        debugLog('Trying IP-based location...', 'info');
+        
+        // Using a free IP geolocation service
+        fetch('https://ipapi.co/json/')
+            .then(response => response.json())
+            .then(data => {
+                if (data.latitude && data.longitude) {
+                    debugLog(`IP-based location: ${data.latitude}, ${data.longitude} (${data.country_name})`, 'success');
+                    resolve({
+                        lat: parseFloat(data.latitude),
+                        lng: parseFloat(data.longitude),
+                        accuracy: 50000, // IP location is very inaccurate
+                        method: 'ip',
+                        country: data.country_name,
+                        city: data.city
+                    });
+                } else {
+                    reject(new Error('IP location service unavailable'));
+                }
+            })
+            .catch(error => {
+                reject(new Error('IP location failed: ' + error.message));
+            });
+    });
+}
+        
+    </script>
+</body>
+</html>

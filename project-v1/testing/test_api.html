@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Test API Endpoints</h1>
+    
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="testGetAlerts()">Get Alerts</button>
+    
+    <div id="result" style="margin-top: 20px; padding: 10px; background: #f0f0f0;"></div>
+
+    <script>
+        function testConnection() {
+            fetch('api.php?action=test_connection')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                });
+        }
+
+        function testGetAlerts() {
+            fetch('api.php?action=get_alerts')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                });
+        }
+    </script>
+</body>
+</html>
